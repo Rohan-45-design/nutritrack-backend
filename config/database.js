@@ -1,27 +1,18 @@
-const mysql = require('mysql2/promise');
+const mysql = require('mysql2');
 require('dotenv').config();
 
 // ==============================================
-// DATABASE CONFIGURATION FOR FREE HOSTING
+// DATABASE CONFIGURATION FOR MYSQL ONLY
 // ==============================================
 
 const dbConfig = {
   production: {
-    // For PostgreSQL (Render Free Tier)
-    connectionString: process.env.DATABASE_URL,
-    ssl: { 
-      rejectUnauthorized: false 
-    }
-  },
-  
-  // Alternative MySQL configuration (if using MySQL)
-  mysql: {
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
+    host: process.env.DB_HOST || 'autorack.proxy.rlwy.net',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || 'your-password',
+    database: process.env.DB_NAME || 'railway',
     port: process.env.DB_PORT || 3306,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: { rejectUnauthorized: false },
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
@@ -48,33 +39,26 @@ const initializeDatabase = async () => {
   try {
     const env = process.env.NODE_ENV || 'development';
     
-    if (env === 'production') {
-      // Use PostgreSQL for free hosting
-      if (process.env.DATABASE_URL) {
-        const { Pool } = require('pg');
-        pool = new Pool({
-          connectionString: process.env.DATABASE_URL,
-          ssl: { rejectUnauthorized: false }
-        });
-        
-        // Test connection
-        const client = await pool.connect();
-        console.log('✅ Connected to PostgreSQL database');
-        client.release();
-      } else {
-        // Fallback to MySQL
-        pool = mysql.createPool(dbConfig.mysql);
-        console.log('✅ Connected to MySQL database');
-      }
-    } else {
-      // Development MySQL
-      pool = mysql.createPool(dbConfig.development);
-      console.log('✅ Connected to local MySQL database');
-    }
+    console.log(`🔄 Connecting to ${env} database...`);
+    
+    // Always use MySQL
+    pool = mysql.createPool(dbConfig[env]);
+    
+    // Test connection
+    const connection = await pool.promise().getConnection();
+    console.log('✅ Connected to MySQL database successfully');
+    connection.release();
     
     return pool;
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
+    console.log('🔄 Retrying connection in 5 seconds...');
+    
+    // Retry connection after 5 seconds
+    setTimeout(() => {
+      initializeDatabase();
+    }, 5000);
+    
     throw error;
   }
 };
@@ -85,20 +69,12 @@ const initializeDatabase = async () => {
 
 const query = async (sql, params = []) => {
   try {
-    if (process.env.DATABASE_URL) {
-      // PostgreSQL queries
-      const client = await pool.connect();
-      try {
-        const result = await client.query(sql, params);
-        return [result.rows];
-      } finally {
-        client.release();
-      }
-    } else {
-      // MySQL queries
-      const [results] = await pool.execute(sql, params);
-      return [results];
+    if (!pool) {
+      await initializeDatabase();
     }
+    
+    const [results] = await pool.promise().execute(sql, params);
+    return [results];
   } catch (error) {
     console.error('Database query error:', error);
     throw error;
@@ -119,10 +95,7 @@ const callProcedure = async (procedureName, params = []) => {
 // Test database connection
 const testConnection = async () => {
   try {
-    const testQuery = process.env.DATABASE_URL 
-      ? 'SELECT NOW() as current_time'
-      : 'SELECT NOW() as current_time';
-    
+    const testQuery = 'SELECT 1 as test';
     const [results] = await query(testQuery);
     console.log('✅ Database connection test successful');
     return true;
@@ -144,5 +117,5 @@ module.exports = {
   pool: () => pool
 };
 
-// Don't auto-initialize on module load - let server.js control initialization
-// initializeDatabase().catch(console.error);
+// Initialize database connection on module load
+initializeDatabase().catch(console.error);
