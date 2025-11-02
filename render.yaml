@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: nutritrack-api
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: "24h"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "100"
+
+databases:
+  - name: nutritrack-db
+    plan: free
+    databaseName: nutritrack_pro_db
+    user: nutritrack_user
