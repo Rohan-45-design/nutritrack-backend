@@ -1,13 +1,12 @@
 {
   "name": "nutritrack-backend",
   "version": "1.0.0",
-  "description": "NutriTrack Pro Backend API - Free Hosting Ready",
+  "description": "NutriTrack Pro Backend API - Node.js + MySQL",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "echo 'Backend build completed'",
-    "test": "echo 'Tests will be added later'"
+    "build": "echo 'Backend build completed'"
   },
   "engines": {
     "node": ">=16.0.0",
@@ -29,10 +28,6 @@
     "nodemon": "^3.0.1"
   },
   "keywords": ["nutrition", "fitness", "health", "database", "api"],
-  "author": "Your Name",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/yourusername/nutritrack-pro.git"
-  }
+  "author": "Rohan",
+  "license": "MIT"
 }
